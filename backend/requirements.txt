@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic>=2.0
+python-multipart
+openpyxl
+pandas
+google-genai
+python-dotenv
+aiofiles
