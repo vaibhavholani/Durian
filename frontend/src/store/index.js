@@ -6,26 +6,34 @@ const useStore = create((set, get) => ({
   columnMapping: null,    // mapping report from backend
   selectedCategory: 'home',
   selectedBrand: 'durian',
+  selectedProvider: 'claude',  // 'claude' | 'gemini'
 
   setUploadedProducts: (products, columnMapping) =>
     set({ uploadedProducts: products, columnMapping }),
   setSelectedCategory: (cat) => set({ selectedCategory: cat }),
   setSelectedBrand: (brand) => set({ selectedBrand: brand }),
+  setSelectedProvider: (provider) => set({ selectedProvider: provider }),
 
   // ─── Job State ───────────────────────────────────────────────────────────────
   currentJobId: null,
   jobStatus: null,        // 'pending' | 'processing' | 'completed' | 'failed'
   jobTotal: 0,
   jobProcessed: 0,
-  jobResults: {},         // sku_id → GeneratedContent
+  jobResults: {},         // sku_id → { versions: [...], combined: null, html_preview: null }
   jobErrors: [],
 
   setJob: (jobId, total) =>
-    set({ currentJobId: jobId, jobTotal: total, jobStatus: 'pending', jobProcessed: 0, jobResults: {}, jobErrors: [] }),
+    set({ currentJobId: jobId, jobTotal: total, jobStatus: 'pending', jobProcessed: 0, jobResults: {}, jobErrors: [], versionSelections: {} }),
 
   updateJobProgress: (data) => {
     const resultMap = {}
-    ;(data.results || []).forEach((r) => { resultMap[r.sku_id] = r })
+    ;(data.results || []).forEach((r) => {
+      // Each result is a SKUResult: { versions: [...], combined, html_preview }
+      if (r.versions && r.versions.length > 0) {
+        const skuId = r.versions[0].sku_id
+        resultMap[skuId] = r
+      }
+    })
     set({
       jobStatus: data.status,
       jobTotal: data.total,
@@ -33,6 +41,24 @@ const useStore = create((set, get) => ({
       jobResults: resultMap,
       jobErrors: data.errors || [],
     })
+  },
+
+  // ─── Version Selections (mix-match per field) ──────────────────────────────
+  versionSelections: {},  // sku_id → { field: versionIndex }
+
+  setVersionSelection: (skuId, field, versionIndex) =>
+    set((state) => ({
+      versionSelections: {
+        ...state.versionSelections,
+        [skuId]: {
+          ...(state.versionSelections[skuId] || {}),
+          [field]: versionIndex,
+        },
+      },
+    })),
+
+  getVersionSelections: (skuId) => {
+    return get().versionSelections[skuId] || {}
   },
 
   // Local optimistic updates (edits before saving)
@@ -60,6 +86,21 @@ const useStore = create((set, get) => ({
         [skuId]: { ...(state.jobResults[skuId] || {}), ...updates },
       },
     })),
+
+  applyCombinedResult: (skuId, polishedContent, htmlPreview) =>
+    set((state) => {
+      const existing = state.jobResults[skuId] || {}
+      return {
+        jobResults: {
+          ...state.jobResults,
+          [skuId]: {
+            ...existing,
+            combined: polishedContent,
+            html_preview: htmlPreview,
+          },
+        },
+      }
+    }),
 
   // ─── Review UI State ─────────────────────────────────────────────────────────
   selectedSkuId: null,

@@ -5,5 +5,7 @@ python-multipart
 openpyxl
 pandas
 google-genai
+anthropic
 python-dotenv
 aiofiles
+langfuse

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Upload, FileSpreadsheet, ChevronRight, Home, Briefcase, Layers,
-  Sparkles, Info, CheckCircle2, AlertCircle, X
+  Sparkles, Info, CheckCircle2, AlertCircle, X, Cpu, Zap
 } from 'lucide-react'
 import { uploadAndGenerate } from '../api/client'
 import useStore from '../store'
@@ -49,7 +49,7 @@ const BRANDS = [
 export default function UploadPage() {
   const navigate = useNavigate()
   const { setJob, setUploadedProducts, selectedCategory, selectedBrand,
-    setSelectedCategory, setSelectedBrand } = useStore()
+    setSelectedCategory, setSelectedBrand, selectedProvider, setSelectedProvider } = useStore()
 
   const [file, setFile] = useState(null)
   const [dragging, setDragging] = useState(false)
@@ -84,7 +84,7 @@ export default function UploadPage() {
     setError(null)
     try {
       const res = await uploadAndGenerate(
-        file, selectedCategory, selectedBrand,
+        file, selectedCategory, selectedBrand, selectedProvider,
         (e) => setUploadProgress(Math.round((e.loaded / e.total) * 100))
       )
       const { job_id, total, products, column_mapping } = res.data
@@ -189,10 +189,55 @@ export default function UploadPage() {
         </div>
       </section>
 
-      {/* Step 3: File upload */}
+      {/* Step 3: AI Provider */}
       <section className="mb-8">
         <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">
-          3 — Upload Product Data
+          3 — AI Provider
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { id: 'claude', label: 'Claude', description: 'Sonnet 4.6 — recommended, 3 versions per SKU', icon: Sparkles, recommended: true },
+            { id: 'gemini', label: 'Gemini', description: 'Flash 2.0 — fast, 3 versions per SKU', icon: Zap, recommended: false },
+          ].map((prov) => {
+            const active = selectedProvider === prov.id
+            const Icon = prov.icon
+            return (
+              <button
+                key={prov.id}
+                onClick={() => setSelectedProvider(prov.id)}
+                className={`text-left p-4 rounded-xl border transition-all duration-150 ${
+                  active
+                    ? 'border-brand-400 bg-brand-50 shadow-sm'
+                    : 'border-stone-200 bg-white hover:border-stone-300'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${active ? 'text-brand-500' : 'text-stone-400'}`} />
+                    <span className={`text-sm font-semibold ${active ? 'text-brand-700' : 'text-stone-800'}`}>
+                      {prov.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {prov.recommended && (
+                      <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-brand-100 text-brand-600">
+                        Recommended
+                      </span>
+                    )}
+                    {active && <CheckCircle2 className="w-4 h-4 text-brand-500" />}
+                  </div>
+                </div>
+                <p className="text-xs text-stone-400">{prov.description}</p>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Step 4: File upload */}
+      <section className="mb-8">
+        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">
+          4 — Upload Product Data
         </label>
         <div
           className={`relative rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer

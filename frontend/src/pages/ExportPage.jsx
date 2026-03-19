@@ -35,7 +35,10 @@ export default function ExportPage() {
   const [downloaded, setDownloaded] = useState(false)
 
   const results = Object.values(jobResults)
-  const approvedCount = results.filter((r) => r.approved).length
+  const approvedCount = results.filter((r) => {
+    const content = r.combined || r.versions?.[0] || r
+    return content.approved
+  }).length
   const exportCount = approvedOnly ? approvedCount : results.length
 
   useEffect(() => {

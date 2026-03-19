@@ -6,9 +6,9 @@ const api = axios.create({
 })
 
 // Upload Excel and immediately start generation
-export const uploadAndGenerate = (file, category, brandType, onUploadProgress) =>
+export const uploadAndGenerate = (file, category, brandType, provider, onUploadProgress) =>
   api.post(
-    `/upload-and-generate?category=${category}&brand_type=${brandType}`,
+    `/upload-and-generate?category=${category}&brand_type=${brandType}&provider=${provider || 'claude'}`,
     (() => {
       const fd = new FormData()
       fd.append('file', file)
@@ -25,8 +25,8 @@ export const uploadFile = (file, onUploadProgress) => {
 }
 
 // Start generation for selected SKUs from an already-uploaded job
-export const startGeneration = (jobId, skuIds, category, brandType) =>
-  api.post('/generate', { sku_ids: skuIds, category, brand_type: brandType })
+export const startGeneration = (jobId, skuIds, category, brandType, provider) =>
+  api.post('/generate', { sku_ids: skuIds, category, brand_type: brandType, provider: provider || 'claude' })
 
 // Poll job progress
 export const getJob = (jobId) => api.get(`/jobs/${jobId}`)
@@ -41,6 +41,14 @@ export const updateContent = (jobId, skuId, updates, approved) =>
     sku_id: skuId,
     updates,
     ...(approved !== undefined ? { approved } : {}),
+  })
+
+// Combine mix-matched versions
+export const combineVersions = (jobId, skuId, selections) =>
+  api.post('/combine', {
+    job_id: jobId,
+    sku_id: skuId,
+    selections,
   })
 
 // Regenerate a section (or full item if section is null)

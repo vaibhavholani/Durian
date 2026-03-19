@@ -38,7 +38,7 @@ export default function GeneratingPage() {
   }, [jobId])
 
   const pct = jobTotal > 0 ? Math.round((jobProcessed / jobTotal) * 100) : 0
-  const resultsList = Object.values(jobResults)
+  const resultsList = Object.entries(jobResults)
   const isFailed = jobStatus === 'failed'
 
   return (
@@ -71,7 +71,7 @@ export default function GeneratingPage() {
             ? 'Something went wrong. Check errors below.'
             : jobStatus === 'completed'
             ? `Generated content for ${jobProcessed} products. Redirecting to review…`
-            : `AI is crafting copy for ${jobTotal} product${jobTotal !== 1 ? 's' : ''}. This takes about a minute.`}
+            : `AI is crafting 3 versions per SKU for ${jobTotal} product${jobTotal !== 1 ? 's' : ''}. This takes about a minute.`}
         </p>
       </div>
 
@@ -95,22 +95,26 @@ export default function GeneratingPage() {
 
       {/* Live SKU feed */}
       <div className="space-y-2 max-h-72 overflow-y-auto">
-        {resultsList.slice(-15).reverse().map((item) => (
-          <div
-            key={item.sku_id}
-            className="flex items-center gap-3 p-3 bg-white rounded-lg border border-stone-100 animate-slide-up"
-          >
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-stone-800 truncate">
-                {item.product_title || item.sku_id}
-              </p>
-              {item.sku_id !== item.product_title && (
-                <p className="text-xs text-stone-400">{item.sku_id}</p>
-              )}
+        {resultsList.slice(-15).reverse().map(([skuId, item]) => {
+          const versionCount = item.versions?.length || 0
+          const firstVersion = item.versions?.[0]
+          return (
+            <div
+              key={skuId}
+              className="flex items-center gap-3 p-3 bg-white rounded-lg border border-stone-100 animate-slide-up"
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-stone-800 truncate">
+                  {firstVersion?.product_title || skuId}
+                </p>
+                <p className="text-xs text-stone-400">
+                  {skuId} · {versionCount} version{versionCount !== 1 ? 's' : ''}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
 
         {/* Skeleton for in-progress */}
         {jobStatus === 'processing' && jobProcessed < jobTotal && (

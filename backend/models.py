@@ -14,6 +14,11 @@ class BrandType(str, Enum):
     PURE = "pure"
 
 
+class ProviderType(str, Enum):
+    CLAUDE = "claude"
+    GEMINI = "gemini"
+
+
 class JobStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
@@ -119,6 +124,7 @@ class GenerationRequest(BaseModel):
     sku_ids: List[str]
     category: CategoryType = CategoryType.HOME
     brand_type: BrandType = BrandType.DURIAN
+    provider: ProviderType = ProviderType.CLAUDE
 
 
 class FeedbackRequest(BaseModel):
@@ -143,10 +149,22 @@ class UpdateContentRequest(BaseModel):
     approved: Optional[bool] = None
 
 
+class CombineRequest(BaseModel):
+    job_id: str
+    sku_id: str
+    selections: Dict[str, int]  # field name → version index (0-2)
+
+
+class SKUResult(BaseModel):
+    versions: List[GeneratedContent] = Field(default_factory=list)
+    combined: Optional[GeneratedContent] = None
+    html_preview: Optional[str] = None
+
+
 class JobProgress(BaseModel):
     job_id: str
     status: JobStatus
     total: int
     processed: int
-    results: List[GeneratedContent] = Field(default_factory=list)
+    results: List[SKUResult] = Field(default_factory=list)
     errors: List[Dict[str, str]] = Field(default_factory=list)

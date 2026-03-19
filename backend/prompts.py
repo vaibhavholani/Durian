@@ -212,6 +212,97 @@ Write a fresh, improved version of "{section}" only. Different angle from the cu
 Return ONLY: {schema}"""
 
 
+# ── 3-version system instruction ─────────────────────────────────────────────
+
+_OUTPUT_SCHEMA_3VERSIONS = """\
+Return ONLY a valid JSON object with a "versions" key containing an array of exactly 3 distinct variations.
+Each variation has the same keys. Make each version genuinely different — vary tone, angle, and emphasis. No markdown, no explanation.
+
+{
+  "versions": [
+    {
+      "design_story":            "1 paragraph, 65-70 words. Open: '[Name] has been designed for those who…'. Specific about materials, mechanism, and the experience of owning it.",
+      "what_you_need_to_know":   "5 numbered points. Each: a Title Case headline (3-6 words) on its own line, then 2-3 sentences of factual detail. Total 110-120 words.",
+      "wyli_icon_text":          "~25 words. Line 1: a 4-6 word punchy headline. Line 2: 1-2 supporting sentences.",
+      "w_icon_1":                "3-5 word feature badge (most important material/structural feature)",
+      "w_icon_2":                "3-5 word feature badge (durability or quality)",
+      "w_icon_3":                "3-5 word feature badge (comfort, function, or mechanism)",
+      "w_icon_4":                "3-5 word feature badge (fourth distinct selling point)",
+      "small_description":       "15-20 words. Plain summary for category pages — what it is and one key differentiator.",
+      "meta_keywords":           "8-10 comma-separated SEO keywords: product type, material, brand, style, use case."
+    },
+    { "...version 2 — different angle/tone..." },
+    { "...version 3 — different angle/tone..." }
+  ]
+}"""
+
+
+def build_system_instruction_3versions(
+    category: CategoryType,
+    example: Optional[Dict] = None,
+) -> str:
+    voice = _VOICE.get(category, _VOICE[CategoryType.HOME])
+    example_block = _format_example(example)
+    return f"{voice}\n\n{_OUTPUT_SCHEMA_3VERSIONS}\n{example_block}"
+
+
+# ── Combine & polish prompt ──────────────────────────────────────────────────
+
+def build_combine_prompt(selections: dict, product) -> str:
+    """
+    Build a prompt for Claude to harmonize mix-matched fields and generate HTML preview.
+    selections: dict of field_name → field_value (already resolved from version indices)
+    """
+    fields_text = "\n".join(f"  {k}: {v}" for k, v in selections.items() if v)
+
+    product_lines = []
+    if product.product_name:
+        product_lines.append(f"Product: {product.product_name}")
+    if product.sku_id:
+        product_lines.append(f"SKU: {product.sku_id}")
+    if product.room:
+        product_lines.append(f"Category: {product.room}")
+    if product.product_type:
+        product_lines.append(f"Type: {product.product_type}")
+    product_context = "\n".join(product_lines)
+
+    return f"""You are a content editor for Durian Furniture, India's premium furniture brand.
+
+Below are content fields selected from different generated variations for a single product. They may have slightly different tones or angles since they come from different versions.
+
+=== PRODUCT CONTEXT ===
+{product_context}
+
+=== SELECTED FIELDS ===
+{fields_text}
+
+Your tasks:
+1. HARMONIZE: Polish these fields so they read as a cohesive set — consistent tone, no contradictions, smooth flow. Keep the factual content intact, only adjust voice/style for consistency. Minimal changes preferred.
+2. HTML PREVIEW: Generate a beautiful, self-contained HTML preview of this product content. Design a modern product-page layout with:
+   - Clean, elegant typography (use system fonts: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)
+   - A warm color palette (stone/amber tones with brand accent #8B6914)
+   - Good visual hierarchy: Design Story as hero, WYNI as feature grid, WYLI as callout, icons as badges
+   - Responsive layout, max-width 800px, centered
+   - All CSS inline or in a <style> tag within the HTML
+   - The HTML should be completely self-contained (no external resources)
+
+Return ONLY valid JSON:
+{{
+  "polished_content": {{
+    "design_story": "...",
+    "what_you_need_to_know": "...",
+    "wyli_icon_text": "...",
+    "w_icon_1": "...",
+    "w_icon_2": "...",
+    "w_icon_3": "...",
+    "w_icon_4": "...",
+    "small_description": "...",
+    "meta_keywords": "..."
+  }},
+  "html_preview": "<html>...</html>"
+}}"""
+
+
 # ── Collection prompt (custom line) ──────────────────────────────────────────
 
 def build_collection_user_content(
